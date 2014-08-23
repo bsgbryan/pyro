@@ -12,27 +12,27 @@ Pull in our requires and setup our Firebase connection.
 
 __NOTE__ _a FIREBASE_ROOT must be specified. An example would be "https://reallycool.firebaseio.com"_
 
-	Firebase = require 'firebase'
-	firebase = new Firebase process.env.FIREBASE_ROOT
-	q        = require 'q'
-	
+    Firebase = require 'firebase'
+    firebase = new Firebase process.env.FIREBASE_ROOT
+    q        = require 'q'
+  
 This will only execute once - when the module is first loaded.
 
-	firebase.auth process.env.FIREBASE_KEY, () -> console.log 'AUTHED'
+    firebase.auth process.env.FIREBASE_KEY, () -> console.log 'AUTHED'
 
 Helper to provide easy access to the last element of an array.
 
-	Array::last = -> @[@length - 1]
+    Array::last = -> @[@length - 1]
 
 sanitize
 --------
 
 Firebase does not support several characters in the url path. This method scrubs such characters.
 
-	sanitize = (nodes) ->
-		nodes
-			.join '/'
-			.replace /\.|#|\$|\[|\]/g, '' # These characters are not allowed by Firebase
+    sanitize = (nodes) ->
+      nodes
+        .join '/'
+        .replace /\.|#|\$|\[|\]/g, '' # These characters are not allowed by Firebase
 
 set
 ---
@@ -45,18 +45,18 @@ by setting `foo`. If the new `foo` value does not contain `bar` or `baz` they wi
 `set` also specifies a priotity for the data's node. The priority is the time the node gets
 added. This allows the node to be sorted and used in `startAt` and `endAt` Firebase queries.
 
-	set = (value, nodes...) ->
-		deferred = q.defer()
+    set = (value, nodes...) ->
+      deferred = q.defer()
 
-		firebase
-			.child sanitize nodes
-			.setWithPriority value, Date.now(), (err) ->
-				if err? 
-					deferred.reject context: 'readbase.set', error: err
-				else
-					deferred.resolve true
+      firebase
+        .child sanitize nodes
+        .setWithPriority value, Date.now(), (err) ->
+          if err? 
+            deferred.reject context: 'readbase.set', error: err
+          else
+            deferred.resolve true
 
-		deferred.promise
+      deferred.promise
 
 add
 ---
@@ -71,32 +71,32 @@ was added.
 
 To do the count updating we use `do_increment_count`.
 
-	add = (value, increment_recursively, nodes...) ->
-		deferred = q.defer()
-		steps 	 = nodes.reverse()
-		path 		 = sanitize steps
+    add = (value, increment_recursively, nodes...) ->
+      deferred = q.defer()
+      steps    = nodes.reverse()
+      path     = sanitize steps
 
-		firebase
-			.child path
-			.once 'value', (snapshot) ->
-				val = snapshot.val()
+      firebase
+        .child path
+        .once 'value', (snapshot) ->
+          val = snapshot.val()
 
-				if val?
-					deferred.resolve added: null
-				else
-					set value, steps
-						.then (   ) -> 
-							if increment_recursively
-								do_increment_count steps[0...-1]
-							else
-								increment_count sanitize steps[0...-1]
+          if val?
+            deferred.resolve added: null
+          else
+            set value, steps
+              .then (   ) -> 
+                if increment_recursively
+                  do_increment_count steps[0...-1]
+                else
+                  increment_count sanitize steps[0...-1]
 
-						.then (   ) -> deferred.resolve added: nodes.last
-						.fail (err) -> 
-							console.log "error #{err}"
-							deferred.reject context: 'readbase.add', error: err
+              .then (   ) -> deferred.resolve added: nodes.last
+              .fail (err) -> 
+                console.log "error #{err}"
+                deferred.reject context: 'readbase.add', error: err
 
-		deferred.promise
+      deferred.promise
 
 do_increment_count
 ------------------
@@ -106,21 +106,21 @@ _this method is private_
 This method recusively calls itself, updating counts as it goes. It builds a promise chain,
 with all promises geting resolved when all node counts have been updated.
 
-	do_increment_count = (nodes) ->
-		deferred = q.defer()
+    do_increment_count = (nodes) ->
+      deferred = q.defer()
 
-		if nodes.length > 0
+      if nodes.length > 0
 
-			increment_count sanitize nodes
-				.then (		) -> do_increment_count nodes[0...-1]
-				.then (		) -> deferred.resolve()
-				.fail (err) -> deferred.reject context: 'do_increment_count', error: err
-		else
-			setTimeout () ->			# We use a setTimout here to force this promise to
-				deferred.resolve()  # resolve after it is returned. Without this, the 
-			, 0 									# caller would never get the resolve message.
+        increment_count sanitize nodes
+          .then (   ) -> do_increment_count nodes[0...-1]
+          .then (   ) -> deferred.resolve()
+          .fail (err) -> deferred.reject context: 'do_increment_count', error: err
+      else
+        setTimeout () ->      # We use a setTimout here to force this promise to
+          deferred.resolve()  # resolve after it is returned. Without this, the 
+        , 0                   # caller would never get the resolve message.
 
-		deferred.promise
+      deferred.promise
 
 increment_count
 ---------------
@@ -135,28 +135,28 @@ updates the count, incrementing it by one.
 `increment_count` also sets a priority for the count. The priority is the time the count was
 updated. This makes it easy to determine the last time a count was updated.
 
-	increment_count = (path) ->
-		deferred = q.defer()
-		count    = path + '/count'
+    increment_count = (path) ->
+      deferred = q.defer()
+      count    = path + '/count'
 
-		firebase
-			.child count
-			.once 'value', (snapshot) ->
-				val = snapshot.val() || 0
+      firebase
+        .child count
+        .once 'value', (snapshot) ->
+          val = snapshot.val() || 0
 
-				firebase
-					.child count
-					.setWithPriority ++val, Date.now(), (err) ->
-						if err?
-							deferred.reject context: 'increment_count', error: err
-						else
-							deferred.resolve()
+          firebase
+            .child count
+            .setWithPriority ++val, Date.now(), (err) ->
+              if err?
+                deferred.reject context: 'increment_count', error: err
+              else
+                deferred.resolve()
 
-		deferred.promise
+      deferred.promise
 
 Public interface
 ----------------
 
-	module.exports = 
-		set: set, 
-		add: add
+    module.exports = 
+      set: set, 
+      add: add
