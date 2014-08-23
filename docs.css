@@ -1,0 +1,5 @@
+@import "docco.css";
+
+.page pre {
+  tab-size: 2;
+}

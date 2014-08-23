@@ -1,0 +1,30 @@
+{
+  "name": "pyro",
+  "version": "1.0.0",
+  "description": "A dsl for Firebase",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:bsgbryan/pyro.git"
+  },
+  "keywords": [
+    "Firebase",
+    "dsl"
+  ],
+  "author": "Bryan Maynard <bsgbryan@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bsgbryan/pyro/issues"
+  },
+  "homepage": "https://github.com/bsgbryan/pyro",
+  "dependencies": {
+    "firebase": "^1.0.21",
+    "q": "^1.0.1"
+  },
+  "devDependencies": {
+    "docco": "^0.6.3"
+  }
+}
