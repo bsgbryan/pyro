@@ -16,9 +16,11 @@ __NOTE__ _a FIREBASE_ROOT must be specified. An example would be "https://really
     firebase = new Firebase process.env.FIREBASE_ROOT
     q        = require 'q'
   
-This will only execute once - when the module is first loaded.
+This will only execute once - when the module is first loaded. It's only called if a `FIREBASE_KEY`
+is provided. Otherwise `pyro` assumes you don't need to be authed.
 
-    firebase.auth process.env.FIREBASE_KEY, () -> console.log 'AUTHED'
+    if process.env.FIREBASE_KEY?
+      firebase.auth process.env.FIREBASE_KEY, () -> console.log 'AUTHED'
 
 Helper to provide easy access to the last element of an array.
 
@@ -74,58 +76,62 @@ To do the count updating we use `do_increment_count`.
     add = (value, increment_recursively, nodes...) ->
       deferred = q.defer()
       steps    = nodes.reverse()
-      path     = sanitize steps
 
-      firebase
-        .child path
-        .once 'value', (snapshot) ->
-          val = snapshot.val()
-
+      get nodes
+        .then (val) ->
           if val?
             deferred.resolve added: null
           else
             set value, steps
-              .then (   ) -> 
+              .then () -> 
                 if increment_recursively
                   do_increment_count steps[0...-1]
                 else
                   increment_count sanitize steps[0...-1]
-
               .then (   ) -> deferred.resolve added: nodes.last
               .fail (err) -> 
-                console.log "error #{err}"
                 deferred.reject context: 'readbase.add', error: err
 
       deferred.promise
 
-do_increment_count
-------------------
+get
+---
 
-_this method is private_
+Get the value for the specified path from Firebase.
 
-This method recusively calls itself, updating counts as it goes. It builds a promise chain,
-with all promises geting resolved when all node counts have been updated.
-
-    do_increment_count = (nodes) ->
+    get = (nodes...) ->
       deferred = q.defer()
+      steps    = nodes.reverse()
+      path     = sanitize steps
 
-      if nodes.length > 0
+      firebase
+        .child path
+        .once 'value', (snapshot) -> deferred.resolve snapshot.val()
 
-        increment_count sanitize nodes
-          .then (   ) -> do_increment_count nodes[0...-1]
-          .then (   ) -> deferred.resolve()
-          .fail (err) -> deferred.reject context: 'do_increment_count', error: err
-      else
-        setTimeout () ->      # We use a setTimout here to force this promise to
-          deferred.resolve()  # resolve after it is returned. Without this, the 
-        , 0                   # caller would never get the resolve message.
+      deferred.promise
+
+touch
+-----
+
+Update a path's priority.
+
+    touch = (nodes...) ->
+      deferred = q.defer()
+      steps    = nodes.reverse()
+      path     = sanitize steps
+
+      firebase
+        .child path
+        .setPriority Date.now(), (err) ->
+          if err?
+            deferred.reject err
+          else
+            deferred.resolve true
 
       deferred.promise
 
 increment_count
 ---------------
-
-_this method is private_
 
 `increment_count` is the method that actually increments the count for the specified path.
 
@@ -154,9 +160,35 @@ updated. This makes it easy to determine the last time a count was updated.
 
       deferred.promise
 
+do_increment_count
+------------------
+
+_this method is private_
+
+This method recusively calls itself, updating counts as it goes. It builds a promise chain,
+with all promises geting resolved when all node counts have been updated.
+
+    do_increment_count = (nodes) ->
+      deferred = q.defer()
+
+      if nodes.length > 0
+
+        increment_count sanitize nodes
+          .then (   ) -> do_increment_count nodes[0...-1]
+          .then (   ) -> deferred.resolve()
+          .fail (err) -> deferred.reject context: 'do_increment_count', error: err
+      else
+        setTimeout () ->      # We use a setTimout here to force this promise to
+          deferred.resolve()  # resolve after it is returned. Without this, the 
+        , 0                   # caller would never get the resolve message.
+
+      deferred.promise
+
 Public interface
 ----------------
 
     module.exports = 
-      set: set, 
-      add: add
+      get:             get
+      set:             set 
+      add:             add
+      increment_count: increment_count
