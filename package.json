@@ -1,6 +1,6 @@
 {
   "name": "pyro",
-  "version": "0.2.2",
+  "version": "0.4.0",
   "description": "A dsl for Firebase",
   "main": "index.js",
   "scripts": {
