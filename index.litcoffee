@@ -29,14 +29,28 @@ Helper to provide easy access to the last element of an array.
 sanitize
 --------
 
-Firebase does not support several characters in the url path. This method scrubs such characters.
+Firebase does not support several characters in the url location. This method scrubs such characters.
 
-    sanitize = (path) -> path.replace /\.|#|\$|\[|\]/g, ''
+    sanitize = (location) -> location.replace /\.|#|\$|\[|\]/g, ''
+
+get
+---
+
+Get the value for the specified location from Firebase.
+
+    get = (location) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize location
+        .once 'value', (snapshot) -> deferred.resolve snapshot.val()
+
+      deferred.promise
 
 set
 ---
 
-`set` takes a path as a simple string. It does not check to see if a value exists before setting
+`set` takes a location as a simple string. It does not check to see if a value exists before setting
 and overrites any existing value. This is especially important because the entire node graph
 beneath the node being written is replaced - meaning `foo`, `bar`, and `baz` would be overwritten
 by setting `foo`. If the new `foo` value does not contain `bar` or `baz` they will just go away. 
@@ -44,12 +58,12 @@ by setting `foo`. If the new `foo` value does not contain `bar` or `baz` they wi
 `set` also specifies a priotity for the data's node. The priority is the time the node gets
 added. This allows the node to be sorted and used in `startAt` and `endAt` Firebase queries.
 
-    set = (path, value) ->
+    set = (location, value) ->
       deferred = q.defer()
 
       firebase
-        .child sanitize path
-        .setWithPriority value, priority(), (err) ->
+        .child sanitize location
+        .setWithPriority value, priority(location, value), (err) ->
           if err? 
             deferred.reject context: 'readbase.set', error: err
           else
@@ -60,52 +74,38 @@ added. This allows the node to be sorted and used in `startAt` and `endAt` Fireb
 add
 ---
 
-1. Add the passed value to the path specified
+1. Add the passed value to the location specified
 2. Increment the list count
 
-`add` only sets the specified value at the passed path if the node does not already exist. If 
-the specified path does exist nothing is done.
+`add` only sets the specified value at the passed location if the node does not already exist. If 
+the specified location does exist nothing is done.
 
-    add = (path, value) ->
+    add = (location, value) ->
       deferred = q.defer()
 
-      get path
+      get location
         .then (val) ->
           if val?
             deferred.resolve added: false
           else
-            set value, steps
-              .then (   ) -> increment_count sanitize steps[0...-1]
+            set sanitize(location), value
+              .then (   ) -> increment_count sanitize location.split('/')[0...-1].join('/')
               .then (   ) -> deferred.resolve added: true
               .fail (err) -> deferred.reject context: 'readbase.add', error: err
-
-      deferred.promise
-
-get
----
-
-Get the value for the specified path from Firebase.
-
-    get = (path) ->
-      deferred = q.defer()
-
-      firebase
-        .child sanitize path
-        .once 'value', (snapshot) -> deferred.resolve snapshot.val()
 
       deferred.promise
 
 touch
 -----
 
-Update a path's priority.
+Update a location's priority.
 
-    touch = (path) ->
+    touch = (location) ->
       deferred = q.defer()
 
       firebase
-        .child sanitize path
-        .setPriority priority(), (err) ->
+        .child sanitize location
+        .setPriority priority(location), (err) ->
           if err?
             deferred.reject err
           else
@@ -116,17 +116,16 @@ Update a path's priority.
 increment_count
 ---------------
 
-`increment_count` is the method that actually increments the count for the specified path.
+`increment_count` increments the `count` property for the specified location.
 
 It first gets the current count (initializing it to `0` if it doesn't exist) and then 
 updates the count, incrementing it by one.
 
-`increment_count` also sets a priority for the count. The priority is the time the count was
-updated. This makes it easy to determine the last time a count was updated.
+`increment_count` also sets a priority for the count using the `priority` method.
 
-    increment_count = (path) ->
+    increment_count = (location) ->
       deferred = q.defer()
-      count    = path + '/count'
+      count    = location + '/count'
 
       firebase
         .child sanitize count
@@ -135,7 +134,7 @@ updated. This makes it easy to determine the last time a count was updated.
 
           firebase
             .child count
-            .setWithPriority ++val, priority(), (err) ->
+            .setWithPriority ++val, priority(location, val), (err) ->
               if err?
                 deferred.reject context: 'increment_count', error: err
               else
@@ -146,33 +145,9 @@ updated. This makes it easy to determine the last time a count was updated.
 priority
 --------
 
-The function used to set a path's priority.
+The function used to set a location's priority.
 
-    priority = () -> Date.now()
-
-do_increment_count
-------------------
-
-_this method is private_
-
-This method recusively calls itself, updating counts as it goes. It builds a promise chain,
-with all promises geting resolved when all node counts have been updated.
-
-    do_increment_count = (nodes) ->
-      deferred = q.defer()
-
-      if nodes.length > 0
-
-        increment_count sanitize nodes
-          .then (   ) -> do_increment_count nodes[0...-1]
-          .then (   ) -> deferred.resolve()
-          .fail (err) -> deferred.reject context: 'do_increment_count', error: err
-      else
-        setTimeout () ->      # We use a setTimout here to force this promise to
-          deferred.resolve()  # resolve after it is returned. Without this, the 
-        , 0                   # caller would never get the resolve message.
-
-      deferred.promise
+    priority = (location, value) -> Date.now()
 
 Public interface
 ----------------

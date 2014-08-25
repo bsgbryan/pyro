@@ -3,17 +3,20 @@ Overview
 
 `pyro` provides a high level dsl for interacting with a Firebase datastore.
 
+All `pyro` calls return promises.
+
 How to use
 ==========
 
 `pyro` uses two environment variables: `FIREBASE_ROOT` and `FIREBASE_KEY`. `FIREBASE_ROOT` is
-required. `FIREBASE_KEY` is only required for Firesbases with auth rules.
+required. `FIREBASE_KEY` is only required for Firesbases with 
+[security rules](https://www.firebase.com/docs/security/guide.html "Securing your data").
 
 get
 ---
 
-`get` is how you read data from Firebase. You pass it the path to the data you want as an array and
-it returns a promise. The promise resolves to the value at the path you specified.
+`get` is how you read data. You pass it the location to the data you want and it returns a promise.
+The promise resolves with the value at the location you specified.
 
 Below is an example:
 
@@ -25,15 +28,15 @@ __NOTE__ _The `FIREBASE_ROOT` and `FIREBASE_KEY` variables are set before we cal
   pyro.
     get('users/barney/friends/fred').
     then(function (value) {
-      // Value is whatever data is stored at the /users/barney/friends/fred path
+      // Value is whatever data is stored at the /users/barney/friends/fred location
     })
 ```
 
 set
 ---
 
-`set` is how you insert and overwrite data. `set` assigns the value passed to the path specified. It 
-returns a promise that is resolved `true` when the value has been set. The path's priority is set
+`set` is how you insert and overwrite data. `set` assigns the value passed to the location specified. It 
+returns a promise that is resolved `true` when the value has been set. The location's priority is set
 using the `priority` method.
 
 Below is an example:
@@ -52,9 +55,9 @@ Below is an example:
 add
 ---
 
-`add` is like set++.
+`add` has the following behaviors:
 
-1. It only adds a value if one does not already exist at the specified path.
+1. It only adds a value if one does not already exist at the specified location.
 2. It maintains a `count` property alongisde added values. `add` assumes it is operating on a list.
 `count` provides an easy way to know how many items exist in the list being added to.
 
@@ -106,14 +109,27 @@ Would result in the following:
 priority
 --------
 
-`priority` is used to set a path's priority. `set`, `add`, and `touch` all use `priority`. The 
-default behavior is to return the value of `Date.now()`. If you need different behavior simply
+`priority` is used internally to set a location's priority. `set`, `add`, and `touch` all use `priority`. The default behavior is to return the value of `Date.now()`. If you need different behavior simply
 override this method with a function that returns an appropriate value.
+
+`priority`'s signature is:
+
+```javascript
+  function priority(location, value) {
+    return // Value that can be used for sorting/searching
+  }
+```
+
+The `location` parameter is the location being prioritized.
+
+The `value` parameter is the value assigned to the location specified. `touch` does not pass this parameter.
 
 touch
 -----
 
-Touch is how you modify a path's priority. The path's priority is set using the `priority` method.
+`touch` is how you modify a location's priority. The location's priority is set using the `priority` method.
+
+`touch` passes the path it's working on to `priority`, but does not pass a value.
 
 ```javascript
   var pyro = require('pyro')
@@ -129,8 +145,18 @@ Touch is how you modify a path's priority. The path's priority is set using the 
     })
 ```
 
+increment_count
+---------------
+
+`increment_count` increments the `count` property for the specified location.
+
+It first gets the current count (initializing it to `0` if it doesn't exist) and then 
+updates the count, incrementing it by one.
+
+`increment_count` also sets a priority for the count using the `priority` method.
+
 TODOS
 =====
 
-1. Add a `scope` property. This would be prepended to all paths so common path elements don't need
+1. Add a `scope` property. This would be prepended to all locations so common location elements don't need
 to be repeated.
