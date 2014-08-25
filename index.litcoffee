@@ -31,10 +31,7 @@ sanitize
 
 Firebase does not support several characters in the url path. This method scrubs such characters.
 
-    sanitize = (nodes) ->
-      nodes
-        .join '/'
-        .replace /\.|#|\$|\[|\]/g, '' # These characters are not allowed by Firebase
+    sanitize = (path) -> path.replace /\.|#|\$|\[|\]/g, ''
 
 set
 ---
@@ -47,12 +44,12 @@ by setting `foo`. If the new `foo` value does not contain `bar` or `baz` they wi
 `set` also specifies a priotity for the data's node. The priority is the time the node gets
 added. This allows the node to be sorted and used in `startAt` and `endAt` Firebase queries.
 
-    set = (value, nodes...) ->
+    set = (path, value) ->
       deferred = q.defer()
 
       firebase
-        .child sanitize nodes
-        .setWithPriority value, Date.now(), (err) ->
+        .child sanitize path
+        .setWithPriority value, priority(), (err) ->
           if err? 
             deferred.reject context: 'readbase.set', error: err
           else
@@ -63,34 +60,24 @@ added. This allows the node to be sorted and used in `startAt` and `endAt` Fireb
 add
 ---
 
-1. Add the specified value to the first node of the passed array
-2. Increment the count for all ancestor nodes
+1. Add the passed value to the path specified
+2. Increment the list count
 
-`add` only adds the specified node and assigns it the passed value if the node does not already
-exist. If the specified node (the first elements in the `nodes` array) does exist the value is
-not updated, no count incrementing is done, and the promise is resolved explaining that nothing
-was added.
+`add` only sets the specified value at the passed path if the node does not already exist. If 
+the specified path does exist nothing is done.
 
-To do the count updating we use `do_increment_count`.
-
-    add = (value, increment_recursively, nodes...) ->
+    add = (path, value) ->
       deferred = q.defer()
-      steps    = nodes.reverse()
 
-      get nodes
+      get path
         .then (val) ->
           if val?
-            deferred.resolve added: null
+            deferred.resolve added: false
           else
             set value, steps
-              .then () -> 
-                if increment_recursively
-                  do_increment_count steps[0...-1]
-                else
-                  increment_count sanitize steps[0...-1]
-              .then (   ) -> deferred.resolve added: nodes.last
-              .fail (err) -> 
-                deferred.reject context: 'readbase.add', error: err
+              .then (   ) -> increment_count sanitize steps[0...-1]
+              .then (   ) -> deferred.resolve added: true
+              .fail (err) -> deferred.reject context: 'readbase.add', error: err
 
       deferred.promise
 
@@ -99,13 +86,11 @@ get
 
 Get the value for the specified path from Firebase.
 
-    get = (nodes...) ->
+    get = (path) ->
       deferred = q.defer()
-      steps    = nodes.reverse()
-      path     = sanitize steps
 
       firebase
-        .child path
+        .child sanitize path
         .once 'value', (snapshot) -> deferred.resolve snapshot.val()
 
       deferred.promise
@@ -115,14 +100,12 @@ touch
 
 Update a path's priority.
 
-    touch = (nodes...) ->
+    touch = (path) ->
       deferred = q.defer()
-      steps    = nodes.reverse()
-      path     = sanitize steps
 
       firebase
-        .child path
-        .setPriority Date.now(), (err) ->
+        .child sanitize path
+        .setPriority priority(), (err) ->
           if err?
             deferred.reject err
           else
@@ -146,19 +129,26 @@ updated. This makes it easy to determine the last time a count was updated.
       count    = path + '/count'
 
       firebase
-        .child count
+        .child sanitize count
         .once 'value', (snapshot) ->
           val = snapshot.val() || 0
 
           firebase
             .child count
-            .setWithPriority ++val, Date.now(), (err) ->
+            .setWithPriority ++val, priority(), (err) ->
               if err?
                 deferred.reject context: 'increment_count', error: err
               else
                 deferred.resolve()
 
       deferred.promise
+
+priority
+--------
+
+The function used to set a path's priority.
+
+    priority = () -> Date.now()
 
 do_increment_count
 ------------------
@@ -191,4 +181,5 @@ Public interface
       get:             get
       set:             set 
       add:             add
+      priority:        priority
       increment_count: increment_count
