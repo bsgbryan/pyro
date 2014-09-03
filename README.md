@@ -109,7 +109,7 @@ Would result in the following:
 priority
 --------
 
-`priority` is used internally to set a location's priority. `set`, `add`, and `touch` all use `priority`. The default behavior is to return the value of `Date.now()`. If you need different behavior simply
+`priority` is used internally to set a location's priority. The default behavior is to return the value of `Date.now()`. If you need different behavior simply
 override this method with a function that returns an appropriate value.
 
 `priority`'s signature is:

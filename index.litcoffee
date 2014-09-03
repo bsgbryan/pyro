@@ -86,11 +86,11 @@ the specified location does exist nothing is done.
       get location
         .then (val) ->
           if val?
-            deferred.resolve added: false
+            deferred.resolve false
           else
             set sanitize(location), value
               .then (   ) -> increment_count sanitize location.split('/')[0...-1].join('/')
-              .then (   ) -> deferred.resolve added: true
+              .then (   ) -> deferred.resolve true
               .fail (err) -> deferred.reject context: 'readbase.add', error: err
 
       deferred.promise

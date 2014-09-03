@@ -52,16 +52,12 @@
     deferred = q.defer();
     get(location).then(function(val) {
       if (val != null) {
-        return deferred.resolve({
-          added: false
-        });
+        return deferred.resolve(false);
       } else {
         return set(sanitize(location), value).then(function() {
           return increment_count(sanitize(location.split('/').slice(0, -1).join('/')));
         }).then(function() {
-          return deferred.resolve({
-            added: true
-          });
+          return deferred.resolve(true);
         }).fail(function(err) {
           return deferred.reject({
             context: 'readbase.add',
