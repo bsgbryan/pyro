@@ -58,14 +58,15 @@ by setting `foo`. If the new `foo` value does not contain `bar` or `baz` they wi
 `set` also specifies a priotity for the data's node. The priority is the time the node gets
 added. This allows the node to be sorted and used in `startAt` and `endAt` Firebase queries.
 
-    set = (location, value) ->
+    set = (location, value, p) ->
       deferred = q.defer()
+      loc      = sanitize location
 
       firebase
-        .child sanitize location
-        .setWithPriority value, priority(location, value), (err) ->
+        .child sanitize loc
+        .setWithPriority value, p || priority(loc, value), (err) ->
           if err? 
-            deferred.reject context: 'readbase.set', error: err
+            deferred.reject context: 'pyro/set', error: err
           else
             deferred.resolve true
 
@@ -80,7 +81,7 @@ add
 `add` only sets the specified value at the passed location if the node does not already exist. If 
 the specified location does exist nothing is done.
 
-    add = (location, value) ->
+    add = (location, value, p) ->
       deferred = q.defer()
 
       get location
@@ -88,10 +89,10 @@ the specified location does exist nothing is done.
           if val?
             deferred.resolve false
           else
-            set sanitize(location), value
+            set sanitize(location), value, p
               .then (   ) -> increment_count sanitize location.split('/')[0...-1].join('/')
               .then (   ) -> deferred.resolve true
-              .fail (err) -> deferred.reject context: 'readbase.add', error: err
+              .fail (err) -> deferred.reject context: 'pyro/add', error: err
 
       deferred.promise
 
@@ -100,12 +101,13 @@ touch
 
 Update a location's priority.
 
-    touch = (location) ->
+    touch = (location, p) ->
       deferred = q.defer()
+      loc      = sanitize location
 
       firebase
-        .child sanitize location
-        .setPriority priority(location), (err) ->
+        .child loc
+        .setPriority p || priority(loc), (err) ->
           if err?
             deferred.reject err
           else
@@ -125,7 +127,8 @@ updates the count, incrementing it by one.
 
     increment_count = (location) ->
       deferred = q.defer()
-      count    = location + '/count'
+      loc      = sanitize location
+      count    = "#{loc}/count"
 
       firebase
         .child sanitize count
@@ -134,7 +137,7 @@ updates the count, incrementing it by one.
 
           firebase
             .child count
-            .setWithPriority ++val, priority(location, val), (err) ->
+            .setWithPriority ++val, priority(loc, val), (err) ->
               if err?
                 deferred.reject context: 'increment_count', error: err
               else

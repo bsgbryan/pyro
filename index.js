@@ -31,13 +31,14 @@
     return deferred.promise;
   };
 
-  set = function(location, value) {
-    var deferred;
+  set = function(location, value, p) {
+    var deferred, loc;
     deferred = q.defer();
-    firebase.child(sanitize(location)).setWithPriority(value, priority(location, value), function(err) {
+    loc = sanitize(location);
+    firebase.child(sanitize(loc)).setWithPriority(value, p || priority(loc, value), function(err) {
       if (err != null) {
         return deferred.reject({
-          context: 'readbase.set',
+          context: 'pyro/set',
           error: err
         });
       } else {
@@ -47,20 +48,20 @@
     return deferred.promise;
   };
 
-  add = function(location, value) {
+  add = function(location, value, p) {
     var deferred;
     deferred = q.defer();
     get(location).then(function(val) {
       if (val != null) {
         return deferred.resolve(false);
       } else {
-        return set(sanitize(location), value).then(function() {
+        return set(sanitize(location), value, p).then(function() {
           return increment_count(sanitize(location.split('/').slice(0, -1).join('/')));
         }).then(function() {
           return deferred.resolve(true);
         }).fail(function(err) {
           return deferred.reject({
-            context: 'readbase.add',
+            context: 'pyro/add',
             error: err
           });
         });
@@ -69,10 +70,11 @@
     return deferred.promise;
   };
 
-  touch = function(location) {
-    var deferred;
+  touch = function(location, p) {
+    var deferred, loc;
     deferred = q.defer();
-    firebase.child(sanitize(location)).setPriority(priority(location), function(err) {
+    loc = sanitize(location);
+    firebase.child(loc).setPriority(p || priority(loc), function(err) {
       if (err != null) {
         return deferred.reject(err);
       } else {
@@ -83,13 +85,14 @@
   };
 
   increment_count = function(location) {
-    var count, deferred;
+    var count, deferred, loc;
     deferred = q.defer();
-    count = location + '/count';
+    loc = sanitize(location);
+    count = "" + loc + "/count";
     firebase.child(sanitize(count)).once('value', function(snapshot) {
       var val;
       val = snapshot.val() || 0;
-      return firebase.child(count).setWithPriority(++val, priority(location, val), function(err) {
+      return firebase.child(count).setWithPriority(++val, priority(loc, val), function(err) {
         if (err != null) {
           return deferred.reject({
             context: 'increment_count',
