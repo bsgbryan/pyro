@@ -90,7 +90,7 @@ the specified location does exist nothing is done.
             deferred.resolve false
           else
             set sanitize(location), value, p
-              .then (   ) -> increment_count sanitize location.split('/')[0...-1].join('/')
+              .then (   ) -> increment_count sanitize location
               .then (   ) -> deferred.resolve true
               .fail (err) -> deferred.reject context: 'pyro/add', error: err
 
