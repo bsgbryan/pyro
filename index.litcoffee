@@ -72,8 +72,8 @@ added. This allows the node to be sorted and used in `startAt` and `endAt` Fireb
 
       deferred.promise
 
-add
----
+add_value
+---------
 
 1. Add the passed value to the location specified
 2. Increment the list count
@@ -81,7 +81,7 @@ add
 `add` only sets the specified value at the passed location if the node does not already exist. If 
 the specified location does exist nothing is done.
 
-    add = (location, value, p) ->
+    add_value = (location, value, p) ->
       deferred = q.defer()
 
       get location
@@ -90,7 +90,24 @@ the specified location does exist nothing is done.
             deferred.resolve false
           else
             set sanitize(location), value, p
-              .then (   ) -> increment_count sanitize location
+              .then (   ) -> increment_count sanitize location.split('/')[0...-1].join('/')
+              .then (   ) -> deferred.resolve true
+              .fail (err) -> deferred.reject context: 'pyro/add', error: err
+
+      deferred.promise
+
+add_leaf
+--------
+
+    add_leaf = (location, value, p) ->
+      deferred = q.defer()
+
+      get "#{location}/#{value}"
+        .then (val) ->
+          if val?
+            deferred.resolve false
+          else
+            set sanitize("#{location}/#{value}"), Date.now(), p
               .then (   ) -> deferred.resolve true
               .fail (err) -> deferred.reject context: 'pyro/add', error: err
 
@@ -128,10 +145,10 @@ updates the count, incrementing it by one.
     increment_count = (location) ->
       deferred = q.defer()
       loc      = sanitize location
-      count    = "#{loc}/count"
+      count    = "#{loc}/_count_"
 
       firebase
-        .child sanitize count
+        .child count
         .once 'value', (snapshot) ->
           val = snapshot.val() || 0
 
@@ -139,7 +156,7 @@ updates the count, incrementing it by one.
             .child count
             .setWithPriority ++val, priority(loc, val), (err) ->
               if err?
-                deferred.reject context: 'increment_count', error: err
+                deferred.reject context: 'pyro/increment_count', error: err
               else
                 deferred.resolve()
 
@@ -158,6 +175,7 @@ Public interface
     module.exports = 
       get:             get
       set:             set 
-      add:             add
+      add_leaf:        add_leaf
+      add_value:       add_value
       priority:        priority
       increment_count: increment_count
