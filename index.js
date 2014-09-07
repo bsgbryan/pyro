@@ -146,9 +146,10 @@
   module.exports = {
     get: get,
     set: set,
+    push: push,
+    priority: priority,
     add_leaf: add_leaf,
     add_value: add_value,
-    priority: priority,
     increment_count: increment_count
   };
 
