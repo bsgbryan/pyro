@@ -113,6 +113,22 @@ add_leaf
 
       deferred.promise
 
+push
+----
+
+    push = (location, value) ->
+      deferred = q.defer()
+
+      firebase
+        .child location
+        .push value, (err) ->
+          if err?
+            deferred.reject err
+          else
+            deferred.resolve true
+
+      deferred.promise
+
 touch
 -----
 
