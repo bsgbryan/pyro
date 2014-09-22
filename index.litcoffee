@@ -139,7 +139,7 @@ find
         .child sanitize path
         .startAt beginning
         .on 'child_added', (snapshot) ->
-          deferred.update snapshot.val()
+          deferred.notify snapshot.val()
 
       deferred.promise
 

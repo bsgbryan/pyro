@@ -107,7 +107,7 @@
     var deferred;
     deferred = q.defer();
     firebase.child(sanitize(path)).startAt(beginning).on('child_added', function(snapshot) {
-      return deferred.update(snapshot.val());
+      return deferred.notify(snapshot.val());
     });
     return deferred.promise;
   };
