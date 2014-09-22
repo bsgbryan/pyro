@@ -129,6 +129,20 @@ push
 
       deferred.promise
 
+find
+----
+
+    find = (path, beginning) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .startAt beginning
+        .on 'child_added', (snapshot) ->
+          deferred.update snapshot.val()
+
+      deferred.promise
+
 touch
 -----
 
@@ -192,6 +206,7 @@ Public interface
       get:             get
       set:             set
       push:            push
+      find:            find
       priority:        priority
       add_leaf:        add_leaf
       add_value:       add_value
