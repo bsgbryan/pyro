@@ -89,7 +89,7 @@ the specified location does exist nothing is done.
           if val?
             deferred.resolve false
           else
-            set sanitize(location), value, p
+            set location, value, p
               .then (   ) -> increment_count sanitize location.split('/')[0...-1].join('/')
               .then (   ) -> deferred.resolve true
               .fail (err) -> deferred.reject context: 'pyro/add', error: err
@@ -107,7 +107,7 @@ add_leaf
           if val?
             deferred.resolve false
           else
-            set sanitize("#{location}/#{value}"), Date.now(), p
+            set "#{location}/#{value}", Date.now(), p
               .then (   ) -> deferred.resolve true
               .fail (err) -> deferred.reject context: 'pyro/add', error: err
 
@@ -139,7 +139,10 @@ find
         .child sanitize path
         .startAt beginning
         .on 'child_added', (snapshot) ->
-          deferred.notify snapshot.val()
+          unless snapshot.name() == '_count_'
+            deferred.notify 
+              name:  snapshot.name()
+              value: snapshot.val()
 
       deferred.promise
 

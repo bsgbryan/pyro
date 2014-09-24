@@ -55,7 +55,7 @@
       if (val != null) {
         return deferred.resolve(false);
       } else {
-        return set(sanitize(location), value, p).then(function() {
+        return set(location, value, p).then(function() {
           return increment_count(sanitize(location.split('/').slice(0, -1).join('/')));
         }).then(function() {
           return deferred.resolve(true);
@@ -77,7 +77,7 @@
       if (val != null) {
         return deferred.resolve(false);
       } else {
-        return set(sanitize("" + location + "/" + value), Date.now(), p).then(function() {
+        return set("" + location + "/" + value, Date.now(), p).then(function() {
           return deferred.resolve(true);
         }).fail(function(err) {
           return deferred.reject({
@@ -107,7 +107,12 @@
     var deferred;
     deferred = q.defer();
     firebase.child(sanitize(path)).startAt(beginning).on('child_added', function(snapshot) {
-      return deferred.notify(snapshot.val());
+      if (snapshot.name() !== '_count_') {
+        return deferred.notify({
+          name: snapshot.name(),
+          value: snapshot.val()
+        });
+      }
     });
     return deferred.promise;
   };
