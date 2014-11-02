@@ -90,7 +90,6 @@ the specified location does exist nothing is done.
             deferred.resolve false
           else
             set location, value, p
-              .then (   ) -> increment_count sanitize location.split('/')[0...-1].join('/')
               .then (   ) -> deferred.resolve true
               .fail (err) -> deferred.reject context: 'pyro/add', error: err
 
@@ -139,7 +138,6 @@ find
         .child sanitize path
         .startAt beginning
         .on 'child_added', (snapshot) ->
-          unless snapshot.name() == '_count_'
             deferred.notify 
               name:  snapshot.name()
               value: snapshot.val()
@@ -202,6 +200,35 @@ The function used to set a location's priority.
 
     priority = (location, value) -> Date.now()
 
+watch
+-----
+
+    watch = (path, event) ->
+      deferred = q.defer()
+
+      if path.indexOf('*') > 0
+        deep = path.split '/'
+
+        for step, i in deep
+          if step == '*'
+            node = sanitize deep[0...i].join '/'
+            firebase
+              .child node
+              .on "child_#{event}", (snapshot) ->
+                firebase
+                  .child "#{node}/#{snapshot.name()}"
+                  .on "child_#{event}", (snap) ->
+                    deferred.notify name: snap.name(), value: snap.val()
+            break
+      else
+        firebase
+          .child sanitize path
+          .on "child_#{event}", (snap) ->
+            deferred.notify name: snap.name(), value: snap.val()
+
+      deferred.promise
+
+
 Public interface
 ----------------
 
@@ -210,6 +237,7 @@ Public interface
       set:             set
       push:            push
       find:            find
+      watch:           watch
       priority:        priority
       add_leaf:        add_leaf
       add_value:       add_value
