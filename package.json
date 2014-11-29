@@ -21,8 +21,8 @@
   },
   "homepage": "https://github.com/bsgbryan/pyro",
   "dependencies": {
-    "firebase": "^1.0.21",
-    "q": "^1.0.1"
+    "firebase": "^2.0.4",
+    "q": "^1.1.1"
   },
   "devDependencies": {
     "docco": "^0.6.3"

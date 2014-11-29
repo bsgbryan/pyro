@@ -61,12 +61,13 @@ added. This allows the node to be sorted and used in `startAt` and `endAt` Fireb
     set = (location, value, p) ->
       deferred = q.defer()
       loc      = sanitize location
+      p        = p || priority loc, value
 
       firebase
-        .child sanitize loc
-        .setWithPriority value, p || priority(loc, value), (err) ->
+        .child loc
+        .setWithPriority value, p, (err) ->
           if err? 
-            deferred.reject context: 'pyro/set', error: err
+            deferred.reject err
           else
             deferred.resolve true
 
@@ -91,7 +92,7 @@ the specified location does exist nothing is done.
           else
             set location, value, p
               .then (   ) -> deferred.resolve true
-              .fail (err) -> deferred.reject context: 'pyro/add', error: err
+              .fail (err) -> deferred.reject  err
 
       deferred.promise
 
@@ -108,7 +109,7 @@ add_leaf
           else
             set "#{location}/#{value}", Date.now(), p
               .then (   ) -> deferred.resolve true
-              .fail (err) -> deferred.reject context: 'pyro/add', error: err
+              .fail (err) -> deferred.reject  err
 
       deferred.promise
 
@@ -205,26 +206,28 @@ watch
 
     watch = (path, event) ->
       deferred = q.defer()
+      idx      = path.indexOf '*'
 
-      if path.indexOf('*') > 0
-        deep = path.split '/'
+      if idx > 0
+        deep  = path.split '/'
+        base = sanitize path[0..(idx - 2)]
 
-        for step, i in deep
-          if step == '*'
-            node = sanitize deep[0...i].join '/'
+        firebase
+          .child base
+          .on "child_#{event}", (snapshot) ->
             firebase
-              .child node
-              .on "child_#{event}", (snapshot) ->
-                firebase
-                  .child "#{node}/#{snapshot.name()}"
-                  .on "child_#{event}", (snap) ->
-                    deferred.notify name: snap.name(), value: snap.val()
-            break
+              .child "#{base}/#{snapshot.name()}"
+              .on "child_#{event}", (snap) ->
+                deferred.notify
+                  name: decodeURIComponent snapshot.name()
+                  article: snap.name()
+                  sentiment: snap.val()
+                  relevance: snap.getPriority()
       else
         firebase
           .child sanitize path
           .on "child_#{event}", (snap) ->
-            deferred.notify name: snap.name(), value: snap.val()
+            deferred.notify name: snap.name(), value: snap.val(), priority: snap.getPriority()
 
       deferred.promise
 

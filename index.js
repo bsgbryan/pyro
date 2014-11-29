@@ -32,15 +32,14 @@
   };
 
   set = function(location, value, p) {
-    var deferred, loc;
+    var deferred, loc, priority;
     deferred = q.defer();
     loc = sanitize(location);
-    firebase.child(sanitize(loc)).setWithPriority(value, p || priority(loc, value), function(err) {
+    priority = p || priority(loc, value);
+    firebase.child(sanitize(loc)).setWithPriority(value, p, function(err) {
+      console.log('TRIED TO SET', value, err);
       if (err != null) {
-        return deferred.reject({
-          context: 'pyro/set',
-          error: err
-        });
+        return deferred.reject(err);
       } else {
         return deferred.resolve(true);
       }
@@ -154,30 +153,28 @@
   };
 
   watch = function(path, event) {
-    var deep, deferred, i, node, step, _i, _len;
+    var base, deep, deferred, idx;
     deferred = q.defer();
-    if (path.indexOf('*') > 0) {
+    idx = path.indexOf('*');
+    if (idx > 0) {
       deep = path.split('/');
-      for (i = _i = 0, _len = deep.length; _i < _len; i = ++_i) {
-        step = deep[i];
-        if (step === '*') {
-          node = sanitize(deep.slice(0, i).join('/'));
-          firebase.child(node).on("child_" + event, function(snapshot) {
-            return firebase.child("" + node + "/" + (snapshot.name())).on("child_" + event, function(snap) {
-              return deferred.notify({
-                name: snap.name(),
-                value: snap.val()
-              });
-            });
+      base = sanitize(path.slice(0, +(idx - 2) + 1 || 9e9));
+      firebase.child(base).on("child_" + event, function(snapshot) {
+        return firebase.child("" + base + "/" + (snapshot.name())).on("child_" + event, function(snap) {
+          return deferred.notify({
+            name: decodeURIComponent(snapshot.name()),
+            article: snap.name(),
+            sentiment: snap.val(),
+            relevance: snap.getPriority()
           });
-          break;
-        }
-      }
+        });
+      });
     } else {
       firebase.child(sanitize(path)).on("child_" + event, function(snap) {
         return deferred.notify({
           name: snap.name(),
-          value: snap.val()
+          value: snap.val(),
+          priority: snap.getPriority()
         });
       });
     }
