@@ -32,12 +32,11 @@
   };
 
   set = function(location, value, p) {
-    var deferred, loc, priority;
+    var deferred, loc;
     deferred = q.defer();
     loc = sanitize(location);
-    priority = p || priority(loc, value);
-    firebase.child(sanitize(loc)).setWithPriority(value, p, function(err) {
-      console.log('TRIED TO SET', value, err);
+    p = p || priority(loc, value);
+    firebase.child(loc).setWithPriority(value, p, function(err) {
       if (err != null) {
         return deferred.reject(err);
       } else {
@@ -57,10 +56,7 @@
         return set(location, value, p).then(function() {
           return deferred.resolve(true);
         }).fail(function(err) {
-          return deferred.reject({
-            context: 'pyro/add',
-            error: err
-          });
+          return deferred.reject(err);
         });
       }
     });
@@ -77,10 +73,7 @@
         return set("" + location + "/" + value, Date.now(), p).then(function() {
           return deferred.resolve(true);
         }).fail(function(err) {
-          return deferred.reject({
-            context: 'pyro/add',
-            error: err
-          });
+          return deferred.reject(err);
         });
       }
     });
