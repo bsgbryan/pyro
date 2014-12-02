@@ -123,6 +123,38 @@ smallest
 
       deferred.promise
 
+exists
+------
+
+    exists = (path, child) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .once 'value', (snapshot) ->
+          deferred.resolve snapshot.hasChild sanitize child
+
+      deferred.promise
+
+exist
+------
+
+    exist = (things) ->
+      deferred  = q.defer()
+      keys      = Object.keys things
+      results   = { }
+      responses = 0
+
+      keys.forEach (key) ->
+        firebase
+          .child sanitize key
+          .once 'value', (snapshot) ->
+            results[key] = snapshot.hasChild sanitize things[key]
+
+            deferred.resolve results if ++responses == keys.length
+
+      deferred.promise
+
 add_value
 ---------
 
@@ -291,6 +323,8 @@ Public interface
       push:            push
       find:            find
       watch:           watch
+      exist:           exist
+      exists:          exists
       biggest:         biggest
       priority:        priority
       add_leaf:        add_leaf
