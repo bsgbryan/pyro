@@ -1,6 +1,6 @@
 {
   "name": "pyro",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "description": "A dsl for Firebase",
   "main": "index.js",
   "scripts": {
@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/bsgbryan/pyro",
   "dependencies": {
-    "firebase": "^2.0.4",
+    "firebase": "^2.0.5",
     "q": "^1.1.1"
   },
   "devDependencies": {

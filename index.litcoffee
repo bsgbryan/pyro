@@ -20,7 +20,7 @@ This will only execute once - when the module is first loaded. It's only called 
 is provided. Otherwise `pyro` assumes you don't need to be authed.
 
     if process.env.FIREBASE_KEY?
-      firebase.auth process.env.FIREBASE_KEY, () -> console.log 'AUTHED'
+      firebase.authWithCustomToken process.env.FIREBASE_KEY, () -> console.log 'AUTHED'
 
 Helper to provide easy access to the last element of an array.
 
@@ -70,6 +70,56 @@ added. This allows the node to be sorted and used in `startAt` and `endAt` Fireb
             deferred.reject err
           else
             deferred.resolve true
+
+      deferred.promise
+
+biggest
+-------
+
+    biggest = (limit, path) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .orderByPriority()
+        .limitToLast parseInt limit, 10
+        .once 'value', (snapshot) ->
+          out = [ ]
+
+          snapshot.forEach (snap) ->
+            out.push
+              name:     snap.key()
+              value:    snap.val()
+              priority: snap.getPriority()
+
+            false
+
+          deferred.resolve out
+
+      deferred.promise
+
+smallest
+--------
+
+    smallest = (limit, path) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .orderByPriority()
+        .limitToFirst parseInt limit, 10
+        .once 'value', (snapshot) ->
+          out = [ ]
+
+          snapshot.forEach (snap) ->
+            out.push
+              name:     snap.key()
+              value:    snap.val()
+              priority: snap.getPriority()
+
+            false
+
+          deferred.resolve out
 
       deferred.promise
 
@@ -140,7 +190,7 @@ find
         .startAt beginning
         .on 'child_added', (snapshot) ->
             deferred.notify 
-              name:  snapshot.name()
+              name:  snapshot.key()
               value: snapshot.val()
 
       deferred.promise
@@ -216,18 +266,18 @@ watch
           .child base
           .on "child_#{event}", (snapshot) ->
             firebase
-              .child "#{base}/#{snapshot.name()}"
+              .child "#{base}/#{snapshot.key()}"
               .on "child_#{event}", (snap) ->
                 deferred.notify
-                  name: decodeURIComponent snapshot.name()
-                  article: snap.name()
+                  name:      decodeURIComponent snapshot.key()
+                  article:   snap.key()
                   sentiment: snap.val()
                   relevance: snap.getPriority()
       else
         firebase
           .child sanitize path
           .on "child_#{event}", (snap) ->
-            deferred.notify name: snap.name(), value: snap.val(), priority: snap.getPriority()
+            deferred.notify name: snap.key(), value: snap.val(), priority: snap.getPriority()
 
       deferred.promise
 
@@ -241,6 +291,7 @@ Public interface
       push:            push
       find:            find
       watch:           watch
+      biggest:         biggest
       priority:        priority
       add_leaf:        add_leaf
       add_value:       add_value
