@@ -76,52 +76,12 @@ added. This allows the node to be sorted and used in `startAt` and `endAt` Fireb
 biggest
 -------
 
-    biggest = (limit, path) ->
-      deferred = q.defer()
-
-      firebase
-        .child sanitize path
-        .orderByPriority()
-        .limitToLast parseInt limit, 10
-        .once 'value', (snapshot) ->
-          out = [ ]
-
-          snapshot.forEach (snap) ->
-            out.push
-              name:     snap.key()
-              value:    snap.val()
-              priority: snap.getPriority()
-
-            false
-
-          deferred.resolve out
-
-      deferred.promise
+    biggest = (path, options) -> execute_query 'Last', path, options
 
 smallest
 --------
 
-    smallest = (limit, path) ->
-      deferred = q.defer()
-
-      firebase
-        .child sanitize path
-        .orderByPriority()
-        .limitToFirst parseInt limit, 10
-        .once 'value', (snapshot) ->
-          out = [ ]
-
-          snapshot.forEach (snap) ->
-            out.push
-              name:     snap.key()
-              value:    snap.val()
-              priority: snap.getPriority()
-
-            false
-
-          deferred.resolve out
-
-      deferred.promise
+    smallest = (path, options) -> execute_query 'First', path, options
 
 exists
 ------
@@ -313,6 +273,81 @@ watch
 
       deferred.promise
 
+monitor
+-------
+
+    monitor = (path) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .on 'child_added', (snapshot) ->
+          deferred.notify 
+            event: 'added'
+            value:
+              name:     snapshot.key()
+              value:    snapshot.val()
+              priority: snapshot.getPriority()
+              
+      firebase
+        .child sanitize path
+        .on 'child_changed', (snapshot) ->
+          deferred.notify 
+            event: 'updated'
+            value:
+              name:     snapshot.key()
+              value:    snapshot.val()
+              priority: snapshot.getPriority()
+
+      deferred.promise
+
+remove
+------
+
+    remove = (path) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .remove -> deferred.resolve()
+
+      deferred.promise
+
+execute_query
+-------------
+
+    execute_query = (mode, path, options) ->
+      deferred = q.defer()
+
+      query = firebase.child sanitize path
+
+      if options.startAt?
+        query.startAt options.startAt
+      
+      if options.key?
+        query.orderByKey options.key
+      else
+        query.orderByPriority()
+
+      if options.limit?
+        query["limitTo#{mode}"] parseInt options.limit, 10
+
+      
+      query.once 'value', (snapshot) ->
+        out = [ ]
+        
+        snapshot.forEach (snap) ->
+          out.push
+            name:     snap.key()
+            value:    snap.val()
+            priority: snap.getPriority()
+
+          false
+
+        deferred.resolve if options.order == 'desc' then out.reverse() else out
+
+      deferred.promise
+
 
 Public interface
 ----------------
@@ -325,7 +360,10 @@ Public interface
       watch:           watch
       exist:           exist
       exists:          exists
+      remove:          remove
+      monitor:         monitor
       biggest:         biggest
+      smallest:        smallest
       priority:        priority
       add_leaf:        add_leaf
       add_value:       add_value
