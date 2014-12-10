@@ -31,12 +31,11 @@
     return deferred.promise;
   };
 
-  set = function(location, value, p) {
+  set = function(location, value) {
     var deferred, loc;
     deferred = q.defer();
     loc = sanitize(location);
-    p = p || priority(loc, value);
-    firebase.child(loc).setWithPriority(value, p, function(err) {
+    firebase.child(loc).setWithPriority(value, Date.now(), function(err) {
       if (err != null) {
         return deferred.reject(err);
       } else {
@@ -127,10 +126,11 @@
     return deferred.promise;
   };
 
-  find = function(path, beginning) {
-    var deferred;
+  find = function(path, options) {
+    var deferred, key;
     deferred = q.defer();
-    firebase.child(sanitize(path)).startAt(beginning).on('child_added', function(snapshot) {
+    key = Object.keys(options)[0];
+    firebase.child(sanitize(path)).orderByChild(key).startAt(options[key]).on('child_added', function(snapshot) {
       return deferred.notify({
         name: snapshot.key(),
         value: snapshot.val()
@@ -180,31 +180,14 @@
   };
 
   watch = function(path, event) {
-    var base, deep, deferred, idx;
+    var deferred;
     deferred = q.defer();
-    idx = path.indexOf('*');
-    if (idx > 0) {
-      deep = path.split('/');
-      base = sanitize(path.slice(0, +(idx - 2) + 1 || 9e9));
-      firebase.child(base).on("child_" + event, function(snapshot) {
-        return firebase.child("" + base + "/" + (snapshot.key())).on("child_" + event, function(snap) {
-          return deferred.notify({
-            name: decodeURIComponent(snapshot.key()),
-            article: snap.key(),
-            sentiment: snap.val(),
-            relevance: snap.getPriority()
-          });
-        });
+    firebase.child(sanitize(path)).on("child_" + event, function(snap) {
+      return deferred.notify({
+        name: snap.key(),
+        value: snap.val()
       });
-    } else {
-      firebase.child(sanitize(path)).on("child_" + event, function(snap) {
-        return deferred.notify({
-          name: snap.key(),
-          value: snap.val(),
-          priority: snap.getPriority()
-        });
-      });
-    }
+    });
     return deferred.promise;
   };
 
@@ -251,7 +234,7 @@
       query.startAt(options.startAt);
     }
     if (options.key != null) {
-      query.orderByKey(options.key);
+      query.orderByChild(options.key);
     } else {
       query.orderByPriority();
     }

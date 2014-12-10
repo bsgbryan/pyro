@@ -58,14 +58,13 @@ by setting `foo`. If the new `foo` value does not contain `bar` or `baz` they wi
 `set` also specifies a priotity for the data's node. The priority is the time the node gets
 added. This allows the node to be sorted and used in `startAt` and `endAt` Firebase queries.
 
-    set = (location, value, p) ->
+    set = (location, value) ->
       deferred = q.defer()
       loc      = sanitize location
-      p        = p || priority loc, value
 
       firebase
         .child loc
-        .setWithPriority value, p, (err) ->
+        .setWithPriority value, Date.now(), (err) ->
           if err? 
             deferred.reject err
           else
@@ -174,12 +173,14 @@ push
 find
 ----
 
-    find = (path, beginning) ->
+    find = (path, options) ->
       deferred = q.defer()
+      key      = Object.keys(options)[0]
 
       firebase
         .child sanitize path
-        .startAt beginning
+        .orderByChild key
+        .startAt options[key]
         .on 'child_added', (snapshot) ->
             deferred.notify 
               name:  snapshot.key()
@@ -248,28 +249,10 @@ watch
 
     watch = (path, event) ->
       deferred = q.defer()
-      idx      = path.indexOf '*'
 
-      if idx > 0
-        deep  = path.split '/'
-        base = sanitize path[0..(idx - 2)]
-
-        firebase
-          .child base
-          .on "child_#{event}", (snapshot) ->
-            firebase
-              .child "#{base}/#{snapshot.key()}"
-              .on "child_#{event}", (snap) ->
-                deferred.notify
-                  name:      decodeURIComponent snapshot.key()
-                  article:   snap.key()
-                  sentiment: snap.val()
-                  relevance: snap.getPriority()
-      else
-        firebase
-          .child sanitize path
-          .on "child_#{event}", (snap) ->
-            deferred.notify name: snap.key(), value: snap.val(), priority: snap.getPriority()
+      firebase
+        .child sanitize path
+        .on "child_#{event}", (snap) -> deferred.notify name: snap.key(), value: snap.val()
 
       deferred.promise
 
@@ -325,7 +308,7 @@ execute_query
         query.startAt options.startAt
       
       if options.key?
-        query.orderByKey options.key
+        query.orderByChild options.key
       else
         query.orderByPriority()
 
