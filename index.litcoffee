@@ -58,13 +58,13 @@ by setting `foo`. If the new `foo` value does not contain `bar` or `baz` they wi
 `set` also specifies a priotity for the data's node. The priority is the time the node gets
 added. This allows the node to be sorted and used in `startAt` and `endAt` Firebase queries.
 
-    set = (location, value) ->
+    set = (location, value, p) ->
       deferred = q.defer()
       loc      = sanitize location
 
       firebase
         .child loc
-        .setWithPriority value, Date.now(), (err) ->
+        .setWithPriority value, p || Date.now(), (err) ->
           if err? 
             deferred.reject err
           else

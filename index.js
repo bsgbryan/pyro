@@ -31,11 +31,11 @@
     return deferred.promise;
   };
 
-  set = function(location, value) {
+  set = function(location, value, p) {
     var deferred, loc;
     deferred = q.defer();
     loc = sanitize(location);
-    firebase.child(loc).setWithPriority(value, Date.now(), function(err) {
+    firebase.child(loc).setWithPriority(value, p || Date.now(), function(err) {
       if (err != null) {
         return deferred.reject(err);
       } else {
