@@ -194,7 +194,7 @@
   monitor = function(path) {
     var deferred;
     deferred = q.defer();
-    firebase.child(sanitize(path)).on('child_added', function(snapshot) {
+    firebase.child(sanitize(path)).once('value', function(snapshot) {
       return deferred.notify({
         event: 'added',
         value: {

@@ -264,7 +264,7 @@ monitor
 
       firebase
         .child sanitize path
-        .on 'child_added', (snapshot) ->
+        .once 'value', (snapshot) ->
           deferred.notify 
             event: 'added'
             value:
