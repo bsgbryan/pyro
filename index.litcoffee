@@ -256,6 +256,14 @@ watch
 
       deferred.promise
 
+unwatch
+-------
+
+    unwatch = (path, event) ->
+      firebase
+        .child sanitize path
+        .off "child_#{event}"
+
 monitor
 -------
 
@@ -283,6 +291,14 @@ monitor
               priority: snapshot.getPriority()
 
       deferred.promise
+
+unmonitor
+---------
+
+    unmonitor = (path) ->
+      firebase
+        .child sanitize path
+        .off 'child_changed'
 
 remove
 ------
@@ -344,10 +360,12 @@ Public interface
       exist:           exist
       exists:          exists
       remove:          remove
+      unwatch:         unwatch
       monitor:         monitor
       biggest:         biggest
       smallest:        smallest
       priority:        priority
       add_leaf:        add_leaf
+      unmonitor:       unmonitor
       add_value:       add_value
       increment_count: increment_count
