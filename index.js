@@ -191,8 +191,8 @@
     return deferred.promise;
   };
 
-  unwatch = function(path, event) {
-    return firebase.child(sanitize(path)).off("child_" + event);
+  unwatch = function(path, event, listener) {
+    return firebase.child(sanitize(path)).off("child_" + event, listener);
   };
 
   monitor = function(path) {

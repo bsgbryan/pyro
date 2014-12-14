@@ -259,10 +259,10 @@ watch
 unwatch
 -------
 
-    unwatch = (path, event) ->
+    unwatch = (path, event, listener) ->
       firebase
         .child sanitize path
-        .off "child_#{event}"
+        .off "child_#{event}", listener
 
 monitor
 -------
