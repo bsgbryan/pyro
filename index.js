@@ -59,7 +59,7 @@
     firebase.child(sanitize(path)).orderByPriority().endAt(limit).once('value', function(snapshot) {
       var out;
       out = [];
-      snapstop.forEach(function(item) {
+      snapshot.forEach(function(item) {
         return out.push({
           name: item.key(),
           value: item.val()

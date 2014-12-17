@@ -94,7 +94,7 @@ to
         .endAt limit
         .once 'value', (snapshot) ->
           out = [ ]
-          snapstop.forEach (item) -> out.push name: item.key(), value: item.val()
+          snapshot.forEach (item) -> out.push name: item.key(), value: item.val()
           deferred.resolve out
 
       deferred.promise
