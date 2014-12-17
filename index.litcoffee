@@ -82,6 +82,23 @@ smallest
 
     smallest = (path, options) -> execute_query 'First', path, options
 
+to
+--
+
+    to = (path, limit) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .orderByPriority()
+        .endAt limit
+        .once 'value', (snapshot) ->
+          out = [ ]
+          snapstop.forEach (item) -> out.push name: item.key(), value: item.val()
+          deferred.resolve out
+
+      deferred.promise
+
 exists
 ------
 
