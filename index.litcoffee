@@ -369,6 +369,7 @@ Public interface
 ----------------
 
     module.exports = 
+      to:              to
       get:             get
       set:             set
       push:            push
