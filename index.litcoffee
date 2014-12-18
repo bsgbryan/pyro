@@ -85,17 +85,41 @@ smallest
 to
 --
 
-    to = (path, limit) ->
+    to = (path, end, limit) ->
+      deferred = q.defer()
+      invokes  = 0
+
+      callback = (snapshot) ->
+        deferred.notify { name: snapshot.key(), value: snapshot.val() }, ++invokes
+
+        if invokes == limit
+          firebase
+            .child sanitize path
+            .off 'child_changed', callback
+
+          deferred.resolve()
+
+      firebase
+        .child sanitize path
+        .orderByPriority()
+        .endAt end
+        .limitToFirst limit
+        .on 'child_added', callback
+
+      deferred.promise
+
+count
+-----
+    
+    count = (path, end) ->
       deferred = q.defer()
 
       firebase
         .child sanitize path
         .orderByPriority()
-        .endAt limit
+        .endAt end
         .once 'value', (snapshot) ->
-          out = [ ]
-          snapshot.forEach (item) -> out.push name: item.key(), value: item.val()
-          deferred.resolve out
+          deferred.resolve snapshot.numChildren()
 
       deferred.promise
 
@@ -375,6 +399,7 @@ Public interface
       push:            push
       find:            find
       watch:           watch
+      touch:           touch
       exist:           exist
       exists:          exists
       remove:          remove
