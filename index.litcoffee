@@ -400,6 +400,7 @@ Public interface
       find:            find
       watch:           watch
       touch:           touch
+      count:           count
       exist:           exist
       exists:          exists
       remove:          remove
