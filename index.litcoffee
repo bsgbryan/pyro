@@ -90,9 +90,9 @@ to
       invokes  = 0
 
       callback = (snapshot) ->
-        deferred.notify { name: snapshot.key(), value: snapshot.val() }, ++invokes
+        deferred.notify { name: snapshot.key(), value: snapshot.val() }
 
-        if invokes == limit
+        if ++invokes == limit
           firebase
             .child sanitize path
             .off 'child_changed', callback

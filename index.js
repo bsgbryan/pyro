@@ -61,8 +61,8 @@
       deferred.notify({
         name: snapshot.key(),
         value: snapshot.val()
-      }, ++invokes);
-      if (invokes === limit) {
+      });
+      if (++invokes === limit) {
         firebase.child(sanitize(path)).off('child_changed', callback);
         return deferred.resolve();
       }
