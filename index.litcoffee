@@ -15,6 +15,7 @@ __NOTE__ _a FIREBASE_ROOT must be specified. An example would be "https://really
     Firebase = require 'firebase'
     firebase = new Firebase process.env.FIREBASE_ROOT
     q        = require 'q'
+    async    = require 'async'
   
 This will only execute once - when the module is first loaded. It's only called if a `FIREBASE_KEY`
 is provided. Otherwise `pyro` assumes you don't need to be authed.
@@ -90,7 +91,7 @@ to
       invokes  = 0
 
       callback = (snapshot) ->
-        deferred.notify { name: snapshot.key(), value: snapshot.val() }
+        deferred.notify { name: snapshot.key(), value: snapshot.val(), index: invokes }
 
         if ++invokes == limit
           firebase
@@ -120,6 +121,23 @@ count
         .endAt end
         .once 'value', (snapshot) ->
           deferred.resolve snapshot.numChildren()
+
+      deferred.promise
+
+counts
+-----
+    
+    counts = (paths...) ->
+      deferred = q.defer()
+      out      = { }
+
+      async.eachSeries paths, (path, next) ->
+        firebase
+          .child sanitize path
+          .once 'value', (snapshot) ->
+            out[path] = snapshot.numChildren()
+            next()
+      , -> deferred.resolve out
 
       deferred.promise
 
@@ -402,6 +420,7 @@ Public interface
       touch:           touch
       count:           count
       exist:           exist
+      counts:          counts
       exists:          exists
       remove:          remove
       unwatch:         unwatch
