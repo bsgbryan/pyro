@@ -48,6 +48,43 @@ Get the value for the specified location from Firebase.
 
       deferred.promise
 
+fetch
+-----
+
+Get the value for the specified location from Firebase.
+
+    fetch = (path, end) ->
+      deferred = q.defer()
+      fetched  = 0
+      limit    = 0
+      items    = [ ]
+
+      callback = (snapshot) ->
+        item =
+          name:     snapshot.key()
+          value:    snapshot.val()
+          priority: snapshot.getPriority()
+
+        items.push item
+
+        deferred.notify item
+        
+        if ++fetched == limit
+          deferred.resolve items
+          firebase
+            .child sanitize path
+            .off 'child_added', callback
+
+      count path, end
+        .then (cnt) ->
+          limit = cnt
+
+          firebase
+            .child sanitize path
+            .on 'child_added', callback
+
+      deferred.promise
+
 set
 ---
 
@@ -89,14 +126,15 @@ to
     to = (path, end, limit) ->
       deferred = q.defer()
       invokes  = 0
+      out      = [ ]
 
       callback = (snapshot) ->
-        deferred.notify { name: snapshot.key(), value: snapshot.val(), index: invokes }
+        deferred.notify name: snapshot.key(), value: snapshot.val(), index: invokes
 
         if ++invokes == limit
           firebase
             .child sanitize path
-            .off 'child_changed', callback
+            .off 'child_added', callback
 
           deferred.resolve()
 
@@ -359,6 +397,22 @@ unmonitor
         .child sanitize path
         .off 'child_changed'
 
+observe
+-------
+
+    observe = (path, event) ->
+      deferred = q.defer()
+
+      firebase
+        .child sanitize path
+        .on "child_#{event}ed", (snapshot) ->
+          deferred.notify
+            name:     snapshot.key()
+            value:    snapshot.val()
+            priority: snapshot.getPriority()
+
+      deferred.promise
+
 remove
 ------
 
@@ -417,6 +471,7 @@ Public interface
       push:            push
       find:            find
       watch:           watch
+      fetch:           fetch
       touch:           touch
       count:           count
       exist:           exist
@@ -425,6 +480,7 @@ Public interface
       remove:          remove
       unwatch:         unwatch
       monitor:         monitor
+      observe:         observe
       biggest:         biggest
       smallest:        smallest
       priority:        priority
