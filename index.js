@@ -89,14 +89,14 @@
     invokes = 0;
     out = [];
     callback = function(snapshot) {
-      deferred.notify({
+      out.push({
         name: snapshot.key(),
         value: snapshot.val(),
         index: invokes
       });
       if (++invokes === limit) {
         firebase.child(sanitize(path)).off('child_added', callback);
-        return deferred.resolve();
+        return deferred.resolve(out);
       }
     };
     firebase.child(sanitize(path)).orderByPriority().endAt(end).limitToFirst(limit).on('child_added', callback);

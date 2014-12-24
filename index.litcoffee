@@ -129,14 +129,14 @@ to
       out      = [ ]
 
       callback = (snapshot) ->
-        deferred.notify name: snapshot.key(), value: snapshot.val(), index: invokes
+        out.push name: snapshot.key(), value: snapshot.val(), index: invokes
 
         if ++invokes == limit
           firebase
             .child sanitize path
             .off 'child_added', callback
 
-          deferred.resolve()
+          deferred.resolve out
 
       firebase
         .child sanitize path
